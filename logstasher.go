@@ -212,11 +212,15 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 	result := t.queryDefinition.Format
 	for _, f := range fields {
 		value, err := EvaluateExpression(entry, f[1:len(f)])
+		Trace.Println("f: ", f)
+		if f ==  "%@timestamp" {
+			value = color.GreenString(value)
+		}
 		if err == nil {
 			result = strings.Replace(result, f, value, -1)
 		}
 	}
-	fmt.Println(color.GreenString(result))
+	fmt.Println(result)
 }
 
 func (t *Tail) buildSearchQuery() elastic.Query {
