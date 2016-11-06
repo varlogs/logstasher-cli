@@ -1,4 +1,5 @@
 package main
+
 import (
 	"runtime"
 	"os"
@@ -9,7 +10,7 @@ import (
 
 type SearchTarget struct {
 	Url          string
-	TunnelUrl	 string	`json:"-"`
+	TunnelUrl    string        `json:"-"`
 	IndexPattern string
 }
 
@@ -25,14 +26,14 @@ type Configuration struct {
 	SearchTarget    SearchTarget
 	QueryDefinition QueryDefinition
 	InitialEntries  int
-	ListOnly        bool	`json:"-"`
+	TailMode        bool        `json:"-"`
 	User            string
 	Password        string  `json:"-"`
-	Verbose         bool	`json:"-"`
-	MoreVerbose     bool	`json:"-"`
-	TraceRequests   bool	`json:"-"`
+	Verbose         bool        `json:"-"`
+	MoreVerbose     bool        `json:"-"`
+	TraceRequests   bool        `json:"-"`
 	SSHTunnelParams string
-	SaveQuery		bool	`json:"-"`
+	SaveQuery       bool        `json:"-"`
 }
 
 var confDir = ".logstasher"
@@ -40,8 +41,6 @@ var defaultConfFile = "default.json"
 
 //When changing this array, make sure to also make appropriate changes in CopyConfigRelevantSettingsTo
 var configRelevantFlags = []string{"url", "f", "i", "t", "u", "ssh"}
-
-
 
 func userHomeDir() string {
 	if runtime.GOOS == "windows" {
@@ -81,15 +80,13 @@ func (c *Configuration) CopyNonConfigRelevantSettingsTo(dest *Configuration) {
 	dest.QueryDefinition.TimestampField = c.QueryDefinition.TimestampField
 	dest.QueryDefinition.AfterDateTime = c.QueryDefinition.AfterDateTime
 	dest.QueryDefinition.BeforeDateTime = c.QueryDefinition.BeforeDateTime
-	dest.ListOnly = c.ListOnly
+	dest.TailMode = c.TailMode
 	dest.InitialEntries = c.InitialEntries
 	dest.Password = c.Password
 	dest.Verbose = c.Verbose
 	dest.MoreVerbose = c.MoreVerbose
 	dest.TraceRequests = c.TraceRequests
 }
-
-
 
 func (c *Configuration) SaveDefault() {
 	confDirPath := userHomeDir() + string(os.PathSeparator) + confDir;
@@ -114,7 +111,7 @@ func (c *Configuration) SaveDefault() {
 	}
 }
 
-func LoadDefault() (conf *Configuration, err error)  {
+func LoadDefault() (conf *Configuration, err error) {
 	confDirPath := userHomeDir() + string(os.PathSeparator) + confDir;
 	if _, err := os.Stat(confDirPath); os.IsNotExist(err) {
 		//conf directory doesn't exist, let's create it
@@ -136,11 +133,10 @@ func LoadDefault() (conf *Configuration, err error)  {
 	return config, nil
 }
 
-
 func (config *Configuration) Flags() []cli.Flag {
 	cli.VersionFlag.Usage = "Print the version"
 	cli.HelpFlag.Usage = "Show help"
-	return []cli.Flag {
+	return []cli.Flag{
 		cli.StringFlag{
 			Name:        "url",
 			Value:       "http://127.0.0.1:9200",
@@ -149,7 +145,7 @@ func (config *Configuration) Flags() []cli.Flag {
 		},
 		cli.StringFlag{
 			Name:        "f,format",
-			Value:       "%message",
+			Value:       "%@timestamp %x_request_id %message",
 			Usage:       "(*) Message format for the entries - field names are referenced using % sign, for example '%@timestamp %message'",
 			Destination: &config.QueryDefinition.Format,
 		},
@@ -160,15 +156,15 @@ func (config *Configuration) Flags() []cli.Flag {
 			Destination: &config.SearchTarget.IndexPattern,
 		},
 		cli.StringFlag{
-			Name:        "t,timestamp-field",
+			Name:        "ts,timestamp-field",
 			Value:       "@timestamp",
 			Usage:       "(*) Timestamp field name used for tailing entries",
 			Destination: &config.QueryDefinition.TimestampField,
 		},
 		cli.BoolFlag{
-			Name:        "l,list-only",
-			Usage:       "Just list the results once, do not follow",
-			Destination: &config.ListOnly,
+			Name:        "t,tail",
+			Usage:       "Follow ElasticSearch for more updates and continously tail",
+			Destination: &config.TailMode,
 		},
 		cli.IntFlag{
 			Name:        "n",
@@ -226,8 +222,8 @@ func (config *Configuration) Flags() []cli.Flag {
 }
 
 //logstasher will work in list-only (no follow) mode if appropriate flag is set or if query has date-time filtering enabled
-func (c *Configuration) IsListOnly() bool {
-	return c.ListOnly || c.QueryDefinition.IsDateTimeFiltered()
+func (c *Configuration) isTailMode() bool {
+	return c.TailMode
 }
 
 func (q *QueryDefinition) IsDateTimeFiltered() bool {

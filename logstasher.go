@@ -447,7 +447,7 @@ func main() {
 		//If we don't exit here we can save the defaults
 		configToSave.SaveDefault()
 
-		tail.Start(!config.IsListOnly(), config.InitialEntries)
+		tail.Start(config.isTailMode(), config.InitialEntries)
 	}
 
 	app.Run(os.Args)
