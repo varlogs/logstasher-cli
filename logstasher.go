@@ -30,6 +30,7 @@ type Tail struct {
 
 // Regexp for parsing out format fields
 var formatRegexp = regexp.MustCompile("%[A-Za-z0-9@_.-]+")
+var localTz, _ = time.LoadLocation("Local")
 
 const dateFormatDMY = "2006-01-02"
 
@@ -212,15 +213,31 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 	result := t.queryDefinition.Format
 	for _, f := range fields {
 		value, err := EvaluateExpression(entry, f[1:len(f)])
-		Trace.Println("f: ", f)
 		if f ==  "%@timestamp" {
-			value = color.GreenString(value)
+
+			parsedTime, err := time.Parse(time.RFC3339, value)
+			if err == nil {
+				formattedTime := parsedTime.In(localTz).Format("2006-01-02 15:04:05.999")
+				value = color.GreenString(rightPad2Len(formattedTime, " ", 23))
+			} else {
+				Trace.Println("parsing error: ", err)
+			}
+		}
+		if f ==  "%x_request_id" && len(value) > 0 {
+			value = value[0:7]
 		}
 		if err == nil {
 			result = strings.Replace(result, f, value, -1)
 		}
 	}
 	fmt.Println(result)
+}
+
+func rightPad2Len(s string, padStr string, overallLen int) string {
+	var padCountInt int
+	padCountInt = 1 + ((overallLen - len(padStr)) / len(padStr))
+	var retStr = s + strings.Repeat(padStr, padCountInt)
+	return retStr[:overallLen]
 }
 
 func (t *Tail) buildSearchQuery() elastic.Query {
