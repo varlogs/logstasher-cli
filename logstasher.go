@@ -224,7 +224,7 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 			}
 		}
 		if f ==  "%x_request_id" && len(value) > 0 {
-			value = value[0:7]
+			value = color.MagentaString(value)
 		}
 		if err == nil {
 			result = strings.Replace(result, f, value, -1)
@@ -242,10 +242,25 @@ func rightPad2Len(s string, padStr string, overallLen int) string {
 
 func (t *Tail) buildSearchQuery() elastic.Query {
 	var query elastic.Query
+
+	elastic.SetTraceLog(Trace)
+
 	if len(t.queryDefinition.Terms) > 0 {
-		result := strings.Join(t.queryDefinition.Terms, " ")
-		Trace.Printf("Running query string query: %s", result)
-		query = elastic.NewQueryStringQuery(result)
+		queryTerms := []string{}
+		for _, term := range t.queryDefinition.Terms {
+			if strings.HasPrefix(term, "id") {
+				tokens := strings.Split(term, ":")
+				query = elastic.NewTermFilter("x_request_id", tokens[1])
+				Trace.Printf("Adding x_request_id filter %s", tokens[1])
+			} else {
+				queryTerms = append(queryTerms, term)
+			}
+		}
+		if len(queryTerms) > 0 {
+			result := strings.Join(queryTerms, " ")
+			Trace.Printf("Running query string query: %s", result)
+			query = elastic.NewQueryStringQuery(result)
+		}
 	} else {
 		Trace.Print("Running query match all query.")
 		query = elastic.NewMatchAllQuery()
