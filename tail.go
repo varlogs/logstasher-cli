@@ -161,9 +161,8 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 	for _, f := range fields {
 		value, err := EvaluateExpression(entry, f[1:])
 		if f == "%@timestamp" {
-
-			parsedTime, err := time.Parse(time.RFC3339, value)
-			if err == nil {
+			parsedTime, timeErr := time.Parse(time.RFC3339, value)
+			if timeErr == nil {
 				formattedTime := parsedTime.In(localTz).Format("2006-01-02 15:04:05.999")
 				value = color.GreenString(rightPad2Len(formattedTime, " ", 23))
 			} else {
@@ -174,8 +173,11 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 		} else if f == "%source" && len(value) > 0 {
 			value = color.CyanString(value)
 		}
+
 		if err == nil {
 			result = strings.Replace(result, f, value, -1)
+		} else {
+			result = strings.Replace(result, f, "", -1) //the field might not be available in the results
 		}
 	}
 	fmt.Println(result)
@@ -201,7 +203,7 @@ func (t *Tail) buildSearchQuery() elastic.Query {
 		if len(queryTerms) > 0 {
 			result := strings.Join(queryTerms, " ")
 			Info.Printf("Filtering by keyword %s", result)
-			query = elastic.NewQueryStringQuery(result)
+			query = elastic.NewQueryStringQuery(result).DefaultField("message").DefaultOperator("and")
 		}
 	} else {
 		Info.Print("Filtering by no keywords...")
