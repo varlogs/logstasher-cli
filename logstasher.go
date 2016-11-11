@@ -355,7 +355,7 @@ func main() {
 	app.Usage = "The command-line-interface for accessing/tailing your service logs"
 	app.HideHelp = true
 	app.Version = VERSION
-	app.ArgsUsage = "[query-string]\n   Options marked with (*) are saved between invocations of the command. Each time you specify an option marked with (*) previously stored settings are erased."
+	app.ArgsUsage = "'<search keyword(s)>'\n   Options marked with (*) are saved between invocations of the command. Each time you specify an option marked with (*) previously stored settings are erased."
 	app.Flags = config.Flags()
 	app.Action = func(c *cli.Context) {
 
@@ -372,7 +372,7 @@ func main() {
 		}
 
 		if !IsConfigRelevantFlagSet(c) {
-			loadedConfig, err := LoadDefault()
+			loadedConfig, err := LoadProfile(config.Profile)
 			if err != nil {
 				Info.Printf("Failed to find or open previous default configuration: %s\n", err)
 			} else {

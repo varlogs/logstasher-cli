@@ -22,10 +22,15 @@ type QueryDefinition struct {
 	BeforeDateTime string  `json:"-"`
 }
 
+type Commands struct {
+	ListSources bool
+}
+
 type Configuration struct {
 	Profile		string
 	SearchTarget    SearchTarget
 	QueryDefinition QueryDefinition
+	Commands 	Commands
 	InitialEntries  int
 	TailMode        bool        `json:"-"`
 	User            string
@@ -112,7 +117,7 @@ func (c *Configuration) SaveDefault() {
 	}
 }
 
-func LoadDefault() (conf *Configuration, err error) {
+func LoadProfile(profile string) (conf *Configuration, err error) {
 	confDirPath := userHomeDir() + string(os.PathSeparator) + confDir;
 	if _, err := os.Stat(confDirPath); os.IsNotExist(err) {
 		//conf directory doesn't exist, let's create it
@@ -121,7 +126,7 @@ func LoadDefault() (conf *Configuration, err error) {
 			return nil, err
 		}
 	}
-	confFile := confDirPath + string(os.PathSeparator) + conf.Profile + ".json";
+	confFile := confDirPath + string(os.PathSeparator) + profile + ".json";
 	var config *Configuration
 	confBytes, err := ioutil.ReadFile(confFile)
 	if (err != nil) {
@@ -161,12 +166,14 @@ func (config *Configuration) Flags() []cli.Flag {
 			Value:       "logstash-[0-9].*",
 			Usage:       "(*) Index pattern - logstasher will attempt to tail only the latest of logstash's indexes matched by the pattern",
 			Destination: &config.SearchTarget.IndexPattern,
+			Hidden: true,
 		},
 		cli.StringFlag{
 			Name:        "ts,timestamp-field",
 			Value:       "@timestamp",
 			Usage:       "(*) Timestamp field name used for tailing entries",
 			Destination: &config.QueryDefinition.TimestampField,
+			Hidden: true,
 		},
 		cli.BoolFlag{
 			Name:        "t,tail",
@@ -175,9 +182,14 @@ func (config *Configuration) Flags() []cli.Flag {
 		},
 		cli.IntFlag{
 			Name:        "n",
-			Value:       50,
+			Value:       100,
 			Usage:       "Number of entries fetched initially",
 			Destination: &config.InitialEntries,
+		},
+		cli.BoolFlag{
+			Name:        "list-sources",
+			Usage:       "List all the sources",
+			Destination: &config.Commands.ListSources,
 		},
 		cli.StringFlag{
 			Name:        "a,after",
@@ -207,6 +219,7 @@ func (config *Configuration) Flags() []cli.Flag {
 			Value:       "",
 			Usage:       "(*) Use ssh tunnel to connect. Format for the argument is [localport:][user@]sshhost.tld[:sshport]",
 			Destination: &config.SSHTunnelParams,
+			Hidden: true,
 		},
 		cli.BoolFlag{
 			Name:        "v1",
