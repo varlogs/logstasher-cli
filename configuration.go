@@ -20,6 +20,7 @@ type QueryDefinition struct {
 	TimestampField string
 	AfterDateTime  string  `json:"-"`
 	BeforeDateTime string  `json:"-"`
+	Source         string
 }
 
 type Commands struct {
@@ -45,7 +46,7 @@ type Configuration struct {
 var confDir = ".logstasher"
 
 //When changing this array, make sure to also make appropriate changes in CopyConfigRelevantSettingsTo
-var configRelevantFlags = []string{"url", "f", "i", "t", "u", "ssh"}
+var configRelevantFlags = []string{"url", "f", "i", "u", "ssh"}
 
 func userHomeDir() string {
 	if runtime.GOOS == "windows" {
@@ -192,6 +193,12 @@ func (config *Configuration) Flags() []cli.Flag {
 			Destination: &config.Commands.ListSources,
 		},
 		cli.StringFlag{
+			Name:        "s,src",
+			Value:       "",
+			Usage:       "Filter by one or more sources (-s 'Foo', -s 'Foo,Bar')",
+			Destination: &config.QueryDefinition.Source,
+		},
+		cli.StringFlag{
 			Name:        "a,after",
 			Value:       "",
 			Usage:       "List results after specified date (example: -a \"2016-06-17T15:00\")",
@@ -204,7 +211,7 @@ func (config *Configuration) Flags() []cli.Flag {
 			Destination: &config.QueryDefinition.BeforeDateTime,
 		},
 		cli.BoolFlag{
-			Name:        "s",
+			Name:        "save",
 			Usage:       "Save query terms - next invocation of logstasher (without parameters) will use saved query terms. Any additional terms specified will be applied with AND operator to saved terms",
 			Destination: &config.SaveQuery,
 		},
@@ -248,6 +255,10 @@ func (c *Configuration) isTailMode() bool {
 
 func (q *QueryDefinition) IsDateTimeFiltered() bool {
 	return q.AfterDateTime != "" || q.BeforeDateTime != ""
+}
+
+func (q *QueryDefinition) isSourceFiltered() bool {
+	return q.Source != ""
 }
 
 func IsConfigRelevantFlagSet(c *cli.Context) bool {
