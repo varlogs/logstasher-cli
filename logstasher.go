@@ -212,7 +212,7 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 	Trace.Println("Fields: ", fields)
 	result := t.queryDefinition.Format
 	for _, f := range fields {
-		value, err := EvaluateExpression(entry, f[1:len(f)])
+		value, err := EvaluateExpression(entry, f[1:])
 		if f ==  "%@timestamp" {
 
 			parsedTime, err := time.Parse(time.RFC3339, value)
@@ -222,9 +222,10 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 			} else {
 				Trace.Println("parsing error: ", err)
 			}
-		}
-		if f ==  "%x_request_id" && len(value) > 0 {
+		} else if f ==  "%x_request_id" && len(value) > 0 {
 			value = color.MagentaString(value)
+		} else if f ==  "%source" && len(value) > 0 {
+			value = color.CyanString(value)
 		}
 		if err == nil {
 			result = strings.Replace(result, f, value, -1)
@@ -369,6 +370,7 @@ func main() {
 		} else {
 			InitLogging(ioutil.Discard, ioutil.Discard, os.Stderr, false)
 		}
+
 		if !IsConfigRelevantFlagSet(c) {
 			loadedConfig, err := LoadDefault()
 			if err != nil {
@@ -393,6 +395,8 @@ func main() {
 			fmt.Print("Enter password: ")
 			config.Password = readPasswd()
 		}
+
+		fmt.Println("Profile: " + config.Profile + " - Hitting " + config.SearchTarget.Url)
 
 		//reset TunnelUrl to nothing, we'll point to the tunnel if we actually manage to create it
 		config.SearchTarget.TunnelUrl = ""

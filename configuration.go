@@ -23,6 +23,7 @@ type QueryDefinition struct {
 }
 
 type Configuration struct {
+	Profile		string
 	SearchTarget    SearchTarget
 	QueryDefinition QueryDefinition
 	InitialEntries  int
@@ -37,7 +38,6 @@ type Configuration struct {
 }
 
 var confDir = ".logstasher"
-var defaultConfFile = "default.json"
 
 //When changing this array, make sure to also make appropriate changes in CopyConfigRelevantSettingsTo
 var configRelevantFlags = []string{"url", "f", "i", "t", "u", "ssh"}
@@ -65,6 +65,7 @@ func (c *Configuration) Copy() *Configuration {
 //When making change here make sure configRelevantFlags global var is also changed
 func (c *Configuration) CopyConfigRelevantSettingsTo(dest *Configuration) {
 	//copy config relevant configuration settings
+	dest.Profile = c.Profile
 	dest.SearchTarget.TunnelUrl = c.SearchTarget.TunnelUrl
 	dest.SearchTarget.Url = c.SearchTarget.Url
 	dest.SearchTarget.IndexPattern = c.SearchTarget.IndexPattern
@@ -103,7 +104,7 @@ func (c *Configuration) SaveDefault() {
 		Error.Printf("Failed to marshall configuration to json: %s.\n", err)
 		return
 	}
-	confFile := confDirPath + string(os.PathSeparator) + defaultConfFile;
+	confFile := confDirPath + string(os.PathSeparator) + c.Profile + ".json"
 	err = ioutil.WriteFile(confFile, confJson, 0700)
 	if (err != nil) {
 		Error.Printf("Failed to save configuration to file %s, %s\n", confFile, err)
@@ -120,7 +121,7 @@ func LoadDefault() (conf *Configuration, err error) {
 			return nil, err
 		}
 	}
-	confFile := confDirPath + string(os.PathSeparator) + defaultConfFile;
+	confFile := confDirPath + string(os.PathSeparator) + conf.Profile + ".json";
 	var config *Configuration
 	confBytes, err := ioutil.ReadFile(confFile)
 	if (err != nil) {
@@ -138,6 +139,12 @@ func (config *Configuration) Flags() []cli.Flag {
 	cli.HelpFlag.Usage = "Show help"
 	return []cli.Flag{
 		cli.StringFlag{
+			Name:        "p,profile",
+			Value:       "default",
+			Usage:       "You can setup a profile for each environment (staging, production) or for each platform with a unique ElasticSearch URL",
+			Destination: &config.Profile,
+		},
+		cli.StringFlag{
 			Name:        "url",
 			Value:       "http://127.0.0.1:9200",
 			Usage:       "(*) ElasticSearch URL",
@@ -145,7 +152,7 @@ func (config *Configuration) Flags() []cli.Flag {
 		},
 		cli.StringFlag{
 			Name:        "f,format",
-			Value:       "%@timestamp %x_request_id %message",
+			Value:       "%@timestamp %x_request_id %source %message",
 			Usage:       "(*) Message format for the entries - field names are referenced using % sign, for example '%@timestamp %message'",
 			Destination: &config.QueryDefinition.Format,
 		},
