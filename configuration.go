@@ -21,6 +21,7 @@ type QueryDefinition struct {
 	AfterDateTime  string  `json:"-"`
 	BeforeDateTime string  `json:"-"`
 	Source         string
+	RequestId      string
 }
 
 type Commands struct {
@@ -199,6 +200,12 @@ func (config *Configuration) Flags() []cli.Flag {
 			Destination: &config.QueryDefinition.Source,
 		},
 		cli.StringFlag{
+			Name:        "id",
+			Value:       "",
+			Usage:       "Filter by x-request-id",
+			Destination: &config.QueryDefinition.RequestId,
+		},
+		cli.StringFlag{
 			Name:        "a,after",
 			Value:       "",
 			Usage:       "List results after specified date (example: -a \"2016-06-17T15:00\")",
@@ -259,6 +266,10 @@ func (q *QueryDefinition) IsDateTimeFiltered() bool {
 
 func (q *QueryDefinition) isSourceFiltered() bool {
 	return q.Source != ""
+}
+
+func (q *QueryDefinition) isRequestIdFiltered() bool {
+	return q.RequestId != ""
 }
 
 func IsConfigRelevantFlagSet(c *cli.Context) bool {

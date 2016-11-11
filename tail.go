@@ -196,28 +196,27 @@ func (t *Tail) buildSearchQuery() elastic.Query {
 	if len(t.queryDefinition.Terms) > 0 {
 		queryTerms := []string{}
 		for _, term := range t.queryDefinition.Terms {
-			if strings.HasPrefix(term, "id") {
-				tokens := strings.Split(term, ":")
-				query = elastic.NewTermFilter("x_request_id", tokens[1])
-				Trace.Printf("Adding x_request_id filter %s", tokens[1])
-			} else {
-				queryTerms = append(queryTerms, term)
-			}
+			queryTerms = append(queryTerms, term)
 		}
 		if len(queryTerms) > 0 {
 			result := strings.Join(queryTerms, " ")
-			Trace.Printf("Running query string query: %s", result)
+			Info.Printf("Filtering by keyword %s", result)
 			query = elastic.NewQueryStringQuery(result)
 		}
 	} else {
-		Trace.Print("Running query match all query.")
+		Info.Print("Filtering by no keywords...")
 		query = elastic.NewMatchAllQuery()
 	}
 
 	if (t.queryDefinition.isSourceFiltered()) {
 		sources := strings.Split(t.queryDefinition.Source, ",")
-		Trace.Printf("Adding source filter %s", sources)
+		Info.Printf("Adding source filter %s", sources)
 		query = elastic.NewFilteredQuery(query).Filter(elastic.NewTermsFilter("source", sources))
+	}
+
+	if (t.queryDefinition.isRequestIdFiltered()) {
+		Info.Printf("Adding x_request_id filter %s", t.queryDefinition.RequestId)
+		query = elastic.NewFilteredQuery(query).Filter(elastic.NewTermFilter("x_request_id", t.queryDefinition.RequestId))
 	}
 
 	if t.queryDefinition.IsDateTimeFiltered() {
