@@ -174,6 +174,25 @@ func (t *Tail) initialSearch(initialEntries int) (*elastic.SearchResult, error) 
 		Do()
 }
 
+func (t *Tail) ListAllSources() (*elastic.SearchResult, error) {
+	tagg := elastic.NewTermsAggregation().Field("source")
+	return t.client.Search().
+		Indices(t.indices...).
+		Aggregation("source", tagg).
+		Size(0).
+		Do()
+}
+
+func (t *Tail) processSources(searchResult *elastic.SearchResult) {
+	sources, ok := searchResult.Aggregations.Terms("source")
+	if ok {
+		for _, res := range sources.Buckets {
+			fmt.Println(res.Key)
+		}
+	}
+}
+
+
 // Process the results (e.g. prints them out based on configured format)
 func (t *Tail) processResults(searchResult *elastic.SearchResult) {
 	Trace.Printf("Fetched page of %d results out of %d total.\n", len(searchResult.Hits.Hits), searchResult.Hits.TotalHits)
@@ -213,7 +232,7 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 	result := t.queryDefinition.Format
 	for _, f := range fields {
 		value, err := EvaluateExpression(entry, f[1:])
-		if f ==  "%@timestamp" {
+		if f == "%@timestamp" {
 
 			parsedTime, err := time.Parse(time.RFC3339, value)
 			if err == nil {
@@ -222,9 +241,9 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 			} else {
 				Trace.Println("parsing error: ", err)
 			}
-		} else if f ==  "%x_request_id" && len(value) > 0 {
+		} else if f == "%x_request_id" && len(value) > 0 {
 			value = color.MagentaString(value)
-		} else if f ==  "%source" && len(value) > 0 {
+		} else if f == "%source" && len(value) > 0 {
 			value = color.CyanString(value)
 		}
 		if err == nil {
@@ -451,7 +470,16 @@ func main() {
 		//If we don't exit here we can save the defaults
 		configToSave.SaveDefault()
 
-		tail.Start(config.isTailMode(), config.InitialEntries)
+		if (config.Commands.ListSources) {
+			result, err := tail.ListAllSources()
+			if err != nil {
+				Error.Fatalln("Error in executing search query.", err)
+			}
+			tail.processSources(result)
+		} else {
+			tail.Start(config.isTailMode(), config.InitialEntries)
+		}
+
 	}
 
 	app.Run(os.Args)
