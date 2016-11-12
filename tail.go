@@ -163,10 +163,10 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 		if f == "%@timestamp" {
 			parsedTime, timeErr := time.Parse(time.RFC3339, value)
 			if timeErr == nil {
-				formattedTime := parsedTime.In(localTz).Format("2006-01-02 15:04:05.999")
+				formattedTime := parsedTime.In(localTz).Format(time.RFC3339Nano)
 				value = color.GreenString(rightPad2Len(formattedTime, " ", 23))
 			} else {
-				Trace.Println("parsing error: ", err)
+				Trace.Println("parsing error: ", timeErr)
 			}
 		} else if f == "%x_request_id" && len(value) > 0 {
 			value = color.MagentaString(value)
@@ -234,14 +234,14 @@ func (t *Tail) buildSearchQuery() elastic.Query {
 func (t *Tail) buildDateTimeRangeFilter() elastic.RangeFilter {
 	filter := elastic.NewRangeFilter(t.queryDefinition.TimestampField)
 	if t.queryDefinition.AfterDateTime != "" {
-		Trace.Printf("Date range query - timestamp after: %s", t.queryDefinition.AfterDateTime)
+		Trace.Printf("Date range query - timestamp after: %s", t.queryDefinition.AfterDateTimeInUTC())
 		filter = filter.IncludeLower(true).
-			From(t.queryDefinition.AfterDateTime)
+			From(t.queryDefinition.AfterDateTimeInUTC())
 	}
 	if t.queryDefinition.BeforeDateTime != "" {
-		Trace.Printf("Date range query - timestamp before: %s", t.queryDefinition.BeforeDateTime)
+		Trace.Printf("Date range query - timestamp before: %s", t.queryDefinition.BeforeDateTimeInUTC())
 		filter = filter.IncludeUpper(false).
-			To(t.queryDefinition.BeforeDateTime)
+			To(t.queryDefinition.BeforeDateTimeInUTC())
 	}
 	return filter
 }

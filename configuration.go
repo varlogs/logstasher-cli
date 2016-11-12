@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"github.com/codegangsta/cli"
+	"time"
+	"fmt"
 )
+
 
 type SearchTarget struct {
 	Url          string
@@ -270,6 +273,25 @@ func (q *QueryDefinition) isSourceFiltered() bool {
 
 func (q *QueryDefinition) isRequestIdFiltered() bool {
 	return q.RequestId != ""
+}
+
+func (q *QueryDefinition) AfterDateTimeInUTC() string {
+	return parseTimeToUTC(q.AfterDateTime)
+}
+
+func (q *QueryDefinition) BeforeDateTimeInUTC() string {
+	return parseTimeToUTC(q.BeforeDateTime)
+}
+
+func parseTimeToUTC(givenTime string) string {
+	parsedTime, timeErr := time.ParseInLocation("2006-01-02T15:04:05.99999999", givenTime, localTz)
+	if timeErr == nil {
+		return parsedTime.UTC().Format(time.RFC3339Nano)
+	} else {
+		fmt.Println("after timestamp not is required format: ", givenTime)
+		fmt.Println(timeErr)
+		return ""
+	}
 }
 
 func IsConfigRelevantFlagSet(c *cli.Context) bool {
