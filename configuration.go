@@ -10,7 +10,6 @@ import (
 	"fmt"
 )
 
-
 type SearchTarget struct {
 	Url          string
 	TunnelUrl    string        `json:"-"`
@@ -23,6 +22,7 @@ type QueryDefinition struct {
 	TimestampField string
 	AfterDateTime  string  `json:"-"`
 	BeforeDateTime string  `json:"-"`
+	Duration       string
 	Source         string
 	RequestId      string
 }
@@ -32,10 +32,10 @@ type Commands struct {
 }
 
 type Configuration struct {
-	Profile		string
+	Profile         string
 	SearchTarget    SearchTarget
 	QueryDefinition QueryDefinition
-	Commands 	Commands
+	Commands        Commands
 	InitialEntries  int
 	TailMode        bool        `json:"-"`
 	User            string
@@ -51,6 +51,21 @@ var confDir = ".logstasher"
 
 //When changing this array, make sure to also make appropriate changes in CopyConfigRelevantSettingsTo
 var configRelevantFlags = []string{"url", "f", "i", "u", "ssh"}
+
+var durationInMinutes = map[string]int{
+	"2m": 2,
+	"5m": 5,
+	"10m": 10,
+	"30m": 30,
+	"1h": 60,
+	"3h": 180,
+	"6h": 360,
+	"12h": 720,
+	"24h": 1440,
+	"3d": 4320,
+	"7d": 10080,
+	"30d": 43200,
+}
 
 func userHomeDir() string {
 	if runtime.GOOS == "windows" {
@@ -151,7 +166,7 @@ func (config *Configuration) Flags() []cli.Flag {
 		cli.StringFlag{
 			Name:        "p,profile",
 			Value:       "default",
-			Usage:       "You can setup a profile for each environment (staging, production) or for each platform with a unique ElasticSearch URL",
+			Usage:       "(*) You can setup a profile for each environment (staging, production) or for each platform with a unique ElasticSearch URL",
 			Destination: &config.Profile,
 		},
 		cli.StringFlag{
@@ -182,7 +197,7 @@ func (config *Configuration) Flags() []cli.Flag {
 		},
 		cli.BoolFlag{
 			Name:        "t,tail",
-			Usage:       "Follow ElasticSearch for more updates and continously tail",
+			Usage:       "Follow logstash for future entries and continously tail",
 			Destination: &config.TailMode,
 		},
 		cli.IntFlag{
@@ -211,14 +226,20 @@ func (config *Configuration) Flags() []cli.Flag {
 		cli.StringFlag{
 			Name:        "a,after",
 			Value:       "",
-			Usage:       "List results after specified date (example: -a \"2016-06-17T15:00\")",
+			Usage:       "List entries after specified timestamp (-a '2016-11-10T10:01:23.200')",
 			Destination: &config.QueryDefinition.AfterDateTime,
 		},
 		cli.StringFlag{
 			Name:        "b,before",
 			Value:       "",
-			Usage:       "List results before specified date (example: -b \"2016-06-17T15:00\")",
+			Usage:       "List entries before specified timestamp (-b '2016-11-10T10:01:23.200')",
 			Destination: &config.QueryDefinition.BeforeDateTime,
+		},
+		cli.StringFlag{
+			Name:        "d,duration",
+			Value:       "5m",
+			Usage:       "Display logs for past duration (2m, 5m, 10m, 30m, 1h, 3h, 6h, 12h, 1d, 2d, 7d, 15d, 30d)",
+			Destination: &config.QueryDefinition.Duration,
 		},
 		cli.BoolFlag{
 			Name:        "save",
@@ -264,7 +285,7 @@ func (c *Configuration) isTailMode() bool {
 }
 
 func (q *QueryDefinition) IsDateTimeFiltered() bool {
-	return q.AfterDateTime != "" || q.BeforeDateTime != ""
+	return q.AfterDateTime != "" || q.BeforeDateTime != "" || q.Duration != ""
 }
 
 func (q *QueryDefinition) isSourceFiltered() bool {
@@ -281,6 +302,13 @@ func (q *QueryDefinition) AfterDateTimeInUTC() string {
 
 func (q *QueryDefinition) BeforeDateTimeInUTC() string {
 	return parseTimeToUTC(q.BeforeDateTime)
+}
+
+func (q *QueryDefinition) SetDurationAsAfterDateTime()  {
+	mins := durationInMinutes[q.Duration]
+	now := time.Now()
+	then := now.Add(time.Duration(-mins) * time.Minute)
+	q.AfterDateTime = then.Format("2006-01-02T15:04:05.99999999")
 }
 
 func parseTimeToUTC(givenTime string) string {

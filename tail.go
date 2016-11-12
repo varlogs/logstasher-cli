@@ -30,6 +30,9 @@ func (tail *Tail) selectIndices(configuration *Configuration) {
 	}
 
 	if configuration.QueryDefinition.IsDateTimeFiltered() {
+		if configuration.QueryDefinition.Duration != "" && configuration.QueryDefinition.AfterDateTime == ""  {
+			configuration.QueryDefinition.SetDurationAsAfterDateTime()
+		}
 		startDate := configuration.QueryDefinition.AfterDateTime
 		endDate := configuration.QueryDefinition.BeforeDateTime
 		if startDate == "" && endDate != "" {
@@ -233,6 +236,13 @@ func (t *Tail) buildSearchQuery() elastic.Query {
 //in query definition
 func (t *Tail) buildDateTimeRangeFilter() elastic.RangeFilter {
 	filter := elastic.NewRangeFilter(t.queryDefinition.TimestampField)
+
+	if t.queryDefinition.Duration != "" {
+		Trace.Printf("Duration query - entries for the past %s", t.queryDefinition.Duration)
+		fmt.Println("Querying logs after", t.queryDefinition.AfterDateTime)
+		t.queryDefinition.SetDurationAsAfterDateTime()
+	}
+
 	if t.queryDefinition.AfterDateTime != "" {
 		Trace.Printf("Date range query - timestamp after: %s", t.queryDefinition.AfterDateTimeInUTC())
 		filter = filter.IncludeLower(true).
@@ -243,6 +253,7 @@ func (t *Tail) buildDateTimeRangeFilter() elastic.RangeFilter {
 		filter = filter.IncludeUpper(false).
 			To(t.queryDefinition.BeforeDateTimeInUTC())
 	}
+
 	return filter
 }
 
