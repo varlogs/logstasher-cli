@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/codegangsta/cli"
 	"golang.org/x/crypto/ssh/terminal"
 	"gopkg.in/olivere/elastic.v2"
@@ -63,6 +62,12 @@ func NewTail(configuration *Configuration) *Tail {
 			elastic.SetTraceLog(Trace))
 	}
 
+	tail.tailMode = configuration.TailMode
+
+	if (tail.tailMode) {
+		fmt.Printf("In Tail Mode... Starting with the most recent %d entries!\n", configuration.InitialEntries)
+	}
+
 	client, err = elastic.NewClient(defaultOptions...)
 
 	if err != nil {
@@ -72,11 +77,6 @@ func NewTail(configuration *Configuration) *Tail {
 
 	tail.queryDefinition = &configuration.QueryDefinition
 
-	tail.tailMode = configuration.TailMode
-
-	if (tail.tailMode) {
-		fmt.Printf("In Tail Mode... Starting with the most recent %d entries!\n", configuration.InitialEntries)
-	}
 
 	tail.selectIndices(configuration)
 
@@ -155,7 +155,7 @@ func main() {
 			config.Password = readPasswd()
 		}
 
-		fmt.Println(color.MagentaString("Profile: " + config.Profile + " Host: " + config.SearchTarget.Url))
+		fmt.Println(paintSystemParams(config))
 		//reset TunnelUrl to nothing, we'll point to the tunnel if we actually manage to create it
 		config.SearchTarget.TunnelUrl = ""
 		if config.SSHTunnelParams != "" {

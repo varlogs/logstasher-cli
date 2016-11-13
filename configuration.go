@@ -214,7 +214,7 @@ func (config *Configuration) Flags() []cli.Flag {
 		cli.StringFlag{
 			Name:        "s,src",
 			Value:       "",
-			Usage:       "Filter by one or more sources (-s 'Foo', -s 'Foo,Bar')",
+			Usage:       "Filter by one or more sources (-s 'AuthService', -s 'MicroService1, MicroService2')",
 			Destination: &config.QueryDefinition.Source,
 		},
 		cli.StringFlag{

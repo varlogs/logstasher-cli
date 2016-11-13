@@ -6,7 +6,6 @@ import (
 	"time"
 	"fmt"
 	"encoding/json"
-	"github.com/fatih/color"
 	"regexp"
 )
 
@@ -168,14 +167,17 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 			parsedTime, timeErr := time.Parse(time.RFC3339, value)
 			if timeErr == nil {
 				formattedTime := parsedTime.In(localTz).Format(time.RFC3339Nano)
-				value = color.GreenString(rightPad2Len(formattedTime, " ", 23))
+				value = paintTimestamp(formattedTime)
 			} else {
 				Trace.Println("parsing error: ", timeErr)
 			}
 		} else if f == "%x_request_id" && len(value) > 0 {
-			value = color.MagentaString(value)
+			value = paintRequestId(value)
 		} else if f == "%source" && len(value) > 0 {
-			value = color.CyanString(value)
+			value = paintSource(value)
+		} else if f == "%message" && len(value) > 0 && len(t.queryDefinition.Terms) > 0 {
+			toHighlight := strings.Join(t.queryDefinition.Terms, " ")
+			value = strings.Replace(value, toHighlight, highlightContent(toHighlight), -1)
 		}
 
 		if err == nil {
@@ -241,7 +243,7 @@ func (t *Tail) buildDateTimeRangeFilter() elastic.RangeFilter {
 
 	if t.queryDefinition.Duration != "" {
 		Trace.Printf("Duration query - entries for the past %s", t.queryDefinition.Duration)
-		fmt.Println(color.YellowString("Querying logs since " + t.queryDefinition.AfterDateTime))
+		fmt.Println(paintInfoline("Querying logs after " + t.queryDefinition.AfterDateTime))
 		t.queryDefinition.SetDurationAsAfterDateTime()
 	}
 
