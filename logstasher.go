@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -72,6 +72,12 @@ func NewTail(configuration *Configuration) *Tail {
 
 	tail.queryDefinition = &configuration.QueryDefinition
 
+	tail.tailMode = configuration.TailMode
+
+	if (tail.tailMode) {
+		fmt.Printf("In Tail Mode... Starting with the most recent %d entries!\n", configuration.InitialEntries)
+	}
+
 	tail.selectIndices(configuration)
 
 	//If we're date filtering on start date, then the sort needs to be ascending
@@ -132,15 +138,15 @@ func main() {
 				Info.Printf("Loaded previous config and connecting to host %s.\n", loadedConfig.SearchTarget.Url)
 				loadedConfig.CopyConfigRelevantSettingsTo(config)
 
-				if config.MoreVerbose {
-					confJs, _ := json.MarshalIndent(loadedConfig, "", "  ")
-					Trace.Println("Loaded config:")
-					Trace.Println(string(confJs))
-
-					confJs, _ = json.MarshalIndent(loadedConfig, "", "  ")
-					Trace.Println("Final (merged) config:")
-					Trace.Println(string(confJs))
-				}
+				//if config.MoreVerbose {
+				//	confJs, _ := json.MarshalIndent(loadedConfig, "", "  ")
+				//	//Trace.Println("Loaded config:")
+				//	//Trace.Println(string(confJs))
+				//
+				//	confJs, _ = json.MarshalIndent(loadedConfig, "", "  ")
+				//	//Trace.Println("Final (merged) config:")
+				//	//Trace.Println(string(confJs))
+				//}
 			}
 		}
 
@@ -149,9 +155,7 @@ func main() {
 			config.Password = readPasswd()
 		}
 
-		fmt.Println(color.MagentaString("Using profile: " + config.Profile))
-		fmt.Println(color.GreenString("Hitting " + config.SearchTarget.Url))
-
+		fmt.Println(color.MagentaString("Profile: " + config.Profile + " Host: " + config.SearchTarget.Url))
 		//reset TunnelUrl to nothing, we'll point to the tunnel if we actually manage to create it
 		config.SearchTarget.TunnelUrl = ""
 		if config.SSHTunnelParams != "" {
@@ -212,7 +216,7 @@ func main() {
 			}
 			tail.processSources(result)
 		} else {
-			tail.Start(config.isTailMode(), config.InitialEntries)
+			tail.Start(config.InitialEntries)
 		}
 
 	}

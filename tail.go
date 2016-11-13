@@ -19,6 +19,7 @@ type Tail struct {
 	indices         []string         //indices to search through
 	lastTimeStamp   string           //timestamp of the last result
 	order           bool             //search order - true = ascending (may be reversed in case date-after filtering)
+	tailMode	bool
 }
 
 // Selects appropriate indices in EL based on configuration. This basically means that if query is date filtered,
@@ -29,7 +30,7 @@ func (tail *Tail) selectIndices(configuration *Configuration) {
 		Error.Fatalln("Could not fetch available indices.", err)
 	}
 
-	if configuration.QueryDefinition.IsDateTimeFiltered() {
+	if configuration.QueryDefinition.IsDateTimeFiltered() && !configuration.TailMode {
 		if configuration.QueryDefinition.Duration != "" && configuration.QueryDefinition.AfterDateTime == ""  {
 			configuration.QueryDefinition.SetDurationAsAfterDateTime()
 		}
@@ -58,14 +59,14 @@ func (tail *Tail) selectIndices(configuration *Configuration) {
 }
 
 // Start the tailer
-func (t *Tail) Start(follow bool, initialEntries int) {
+func (t *Tail) Start(initialEntries int) {
 	result, err := t.initialSearch(initialEntries)
 	if err != nil {
 		Error.Fatalln("Error in executing search query.", err)
 	}
 	t.processResults(result)
 	delay := 500 * time.Millisecond
-	for follow {
+	for t.tailMode {
 		time.Sleep(delay)
 		if t.lastTimeStamp != "" {
 			//we can execute follow up timestamp filtered query only if we fetched at least 1 result in initial query
@@ -157,9 +158,9 @@ func (t *Tail) processHit(hit *elastic.SearchHit) map[string]interface{} {
 
 // Print result according to format
 func (t *Tail) printResult(entry map[string]interface{}) {
-	//Trace.Println("Result: ", entry)
+	Trace.Println("Result: ", entry)
 	fields := formatRegexp.FindAllString(t.queryDefinition.Format, -1)
-	//Trace.Println("Fields: ", fields)
+	Trace.Println("Fields: ", fields)
 	result := t.queryDefinition.Format
 	for _, f := range fields {
 		value, err := EvaluateExpression(entry, f[1:])
@@ -224,11 +225,12 @@ func (t *Tail) buildSearchQuery() elastic.Query {
 		query = elastic.NewFilteredQuery(query).Filter(elastic.NewTermFilter("x_request_id", t.queryDefinition.RequestId))
 	}
 
-	if t.queryDefinition.IsDateTimeFiltered() {
+	if t.queryDefinition.IsDateTimeFiltered() && !t.tailMode {
 		// we have date filtering turned on, apply filter
 		filter := t.buildDateTimeRangeFilter()
 		query = elastic.NewFilteredQuery(query).Filter(filter)
 	}
+
 	return query
 }
 
@@ -239,7 +241,7 @@ func (t *Tail) buildDateTimeRangeFilter() elastic.RangeFilter {
 
 	if t.queryDefinition.Duration != "" {
 		Trace.Printf("Duration query - entries for the past %s", t.queryDefinition.Duration)
-		fmt.Println("Querying logs after", t.queryDefinition.AfterDateTime)
+		fmt.Println(color.YellowString("Querying logs since " + t.queryDefinition.AfterDateTime))
 		t.queryDefinition.SetDurationAsAfterDateTime()
 	}
 
