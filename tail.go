@@ -18,7 +18,7 @@ type Tail struct {
 	indices         []string         //indices to search through
 	lastTimeStamp   string           //timestamp of the last result
 	order           bool             //search order - true = ascending (may be reversed in case date-after filtering)
-	tailMode	bool
+	tailMode        bool
 }
 
 // Selects appropriate indices in EL based on configuration. This basically means that if query is date filtered,
@@ -30,7 +30,7 @@ func (tail *Tail) selectIndices(configuration *Configuration) {
 	}
 
 	if configuration.QueryDefinition.IsDateTimeFiltered() && !configuration.TailMode {
-		if configuration.QueryDefinition.Duration != "" && configuration.QueryDefinition.AfterDateTime == ""  {
+		if configuration.QueryDefinition.Duration != "" && configuration.QueryDefinition.AfterDateTime == "" {
 			configuration.QueryDefinition.SetDurationAsAfterDateTime()
 		}
 		startDate := configuration.QueryDefinition.AfterDateTime
@@ -58,27 +58,48 @@ func (tail *Tail) selectIndices(configuration *Configuration) {
 }
 
 // Start the tailer
-func (t *Tail) Start(initialEntries int) {
-	result, err := t.initialSearch(initialEntries)
+func (t *Tail) Start(entriesPerBatch int) {
+	result, err := t.initialSearch(entriesPerBatch)
 	if err != nil {
 		Error.Fatalln("Error in executing search query.", err)
 	}
 	t.processResults(result)
+
+	if (t.tailMode) {
+		t.InfinitelyTail(entriesPerBatch)
+	} else {
+		t.InfinitelyPromptUser(entriesPerBatch)
+	}
+}
+
+func (t *Tail) InfinitelyPromptUser(entriesPerBatch int) {
+	var result *elastic.SearchResult
+	var err error
+	for true {
+		if shouldFetchMoreEntries() {
+			result, err = t.FetchNextBatchOfEntries(entriesPerBatch)
+			if err != nil {
+				Error.Fatalln("Error in executing search query.", err)
+			}
+			t.processResults(result)
+		} else {
+			break
+		}
+	}
+}
+
+func (t *Tail) InfinitelyTail(entriesPerBatch int) {
+	var result *elastic.SearchResult
+	var err error
 	delay := 500 * time.Millisecond
-	for t.tailMode {
+	for true {
 		time.Sleep(delay)
 		if t.lastTimeStamp != "" {
 			//we can execute follow up timestamp filtered query only if we fetched at least 1 result in initial query
-			result, err = t.client.Search().
-				Indices(t.indices...).
-				Sort(t.queryDefinition.TimestampField, false).
-				From(0).
-				Size(9000).//TODO: needs rewrite this using scrolling, as this implementation may loose entries if there's more than 9K entries per sleep period
-				Query(t.buildTimestampFilteredQuery()).
-				Do()
+			result, err = t.FetchNextBatchOfEntries(9000) //TODO: needs rewrite this using scrolling, as this implementation may loose entries if there's more than 9K entries per sleep period
 		} else {
 			//if lastTimeStamp is not defined we have to repeat the initial search until we get at least 1 result
-			result, err = t.initialSearch(initialEntries)
+			result, err = t.initialSearch(entriesPerBatch)
 		}
 		if err != nil {
 			Error.Fatalln("Error in executing search query.", err)
@@ -94,14 +115,24 @@ func (t *Tail) Start(initialEntries int) {
 	}
 }
 
+func (t *Tail) FetchNextBatchOfEntries(entriesPerBatch int) (*elastic.SearchResult, error) {
+	return t.client.Search().
+		Indices(t.indices...).
+		Sort(t.queryDefinition.TimestampField, false).
+		From(0).
+		Size(entriesPerBatch).
+		Query(t.buildTimestampFilteredQuery()).
+		Do()
+}
+
 // Initial search needs to be run until we get at least one result
 // in order to fetch the timestamp which we will use in subsequent follow searches
-func (t *Tail) initialSearch(initialEntries int) (*elastic.SearchResult, error) {
+func (t *Tail) initialSearch(entriesPerBatch int) (*elastic.SearchResult, error) {
 	return t.client.Search().
 		Indices(t.indices...).
 		Sort(t.queryDefinition.TimestampField, t.order).
 		Query(t.buildSearchQuery()).
-		From(0).Size(initialEntries).
+		From(0).Size(entriesPerBatch).
 		Do()
 }
 
@@ -243,7 +274,9 @@ func (t *Tail) buildDateTimeRangeFilter() elastic.RangeFilter {
 
 	if t.queryDefinition.Duration != "" {
 		Trace.Printf("Duration query - entries for the past %s", t.queryDefinition.Duration)
-		fmt.Println(paintInfoline("Querying logs after " + t.queryDefinition.AfterDateTime))
+		if t.lastTimeStamp == "" {
+			fmt.Println(paintInfoline("Querying logs after " + t.queryDefinition.AfterDateTime))
+		}
 		t.queryDefinition.SetDurationAsAfterDateTime()
 	}
 

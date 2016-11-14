@@ -81,7 +81,7 @@ func NewTail(configuration *Configuration) *Tail {
 	tail.selectIndices(configuration)
 
 	//If we're date filtering on start date, then the sort needs to be ascending
-	if configuration.QueryDefinition.AfterDateTime != "" {
+	if configuration.QueryDefinition.AfterDateTime != "" || configuration.QueryDefinition.Duration != "" {
 		tail.order = true //ascending
 	} else {
 		tail.order = false //descending
@@ -111,7 +111,7 @@ func main() {
 	config := new(Configuration)
 	app := cli.NewApp()
 	app.Name = "logstasher-cli"
-	app.Usage = "The command-line-interface for accessing/tailing your service logs"
+	app.Usage = "The power of command line to search/tail logstash logs"
 	app.HideHelp = true
 	app.Version = VERSION
 	app.ArgsUsage = "'<search keyword(s)>'\n   Options marked with (*) are saved between invocations of the command. Each time you specify an option marked with (*) previously stored settings are erased."
