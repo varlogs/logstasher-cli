@@ -206,9 +206,13 @@ func (t *Tail) printResult(entry map[string]interface{}) {
 			value = paintRequestId(value)
 		} else if f == "%source" && len(value) > 0 {
 			value = paintSource(value)
-		} else if f == "%message" && len(value) > 0 && len(t.queryDefinition.Terms) > 0 {
-			toHighlight := strings.Join(t.queryDefinition.Terms, " ")
-			value = strings.Replace(value, toHighlight, highlightContent(toHighlight), -1)
+		} else if f == "%message" && len(value) > 0 && (len(t.queryDefinition.Terms) > 0 || t.queryDefinition.Watch != "") {
+			if len(t.queryDefinition.Terms) > 0 {
+				toHighlight := strings.Join(t.queryDefinition.Terms, " ")
+				value = strings.Replace(value, toHighlight, highlightContent(toHighlight), -1)
+			} else if t.queryDefinition.Watch != "" {
+				value = strings.Replace(value, t.queryDefinition.Watch, highlightContent(t.queryDefinition.Watch), -1)
+			}
 		}
 
 		if err == nil {

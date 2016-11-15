@@ -25,6 +25,7 @@ type QueryDefinition struct {
 	Duration       string
 	Source         string
 	RequestId      string
+	Watch	       string
 }
 
 type Commands struct {
@@ -240,6 +241,12 @@ func (config *Configuration) Flags() []cli.Flag {
 			Value:       "5m",
 			Usage:       "Display logs for past duration (2m, 5m, 10m, 30m, 1h, 3h, 6h, 12h, 1d, 2d, 7d, 15d, 30d)",
 			Destination: &config.QueryDefinition.Duration,
+		},
+		cli.StringFlag{
+			Name:        "w,watch",
+			Value:       "",
+			Usage:       "Watch for word/phrase in the logs and highlight them",
+			Destination: &config.QueryDefinition.Watch,
 		},
 		cli.BoolFlag{
 			Name:        "save",
