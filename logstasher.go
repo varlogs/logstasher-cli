@@ -133,7 +133,11 @@ func main() {
 			loadedConfig, err := LoadProfile(config.Profile)
 			if err != nil {
 				Info.Printf("Failed to find or open previous default configuration: %s\n", err)
-				Error.Fatalln("It seems like you do not have default profile setup. Please setup a profile by providing -p, -url, -default-profile options or type --help for all options")
+				if config.Profile != "default" {
+					Error.Fatalln("You have no configuration setup for profile " + config.Profile + ". Type --help for usage..")
+				} else {
+					Error.Fatalln("It seems like you do not have default profile setup. Please setup a profile by providing -p, -url, -default-profile options or type --help for all options")
+				}
 			} else {
 				Info.Printf("Loaded previous config and connecting to host %s.\n", loadedConfig.SearchTarget.Url)
 				loadedConfig.CopyConfigRelevantSettingsTo(config)
