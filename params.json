@@ -1,0 +1,6 @@
+{
+  "name": "Logstasher-cli",
+  "tagline": "The power of command line to search/tail logstash logs",
+  "body": "# logstasher-cli\r\n\r\nlogstasher-cli is a command line utility to query and tail logstash logs",
+  "note": "Don't delete this file! It's used internally to help with page regeneration."
+}
