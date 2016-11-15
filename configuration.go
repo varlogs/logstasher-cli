@@ -27,6 +27,7 @@ type QueryDefinition struct {
 	Source         string
 	RequestId      string
 	Watch          string
+	DurationSpecified bool
 }
 
 type Commands struct {

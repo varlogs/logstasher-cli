@@ -31,6 +31,7 @@ func (tail *Tail) selectIndices(configuration *Configuration) {
 
 	if configuration.QueryDefinition.IsDateTimeFiltered() && !configuration.TailMode {
 		if configuration.QueryDefinition.Duration != "" && configuration.QueryDefinition.AfterDateTime == "" {
+			configuration.QueryDefinition.DurationSpecified = true
 			configuration.QueryDefinition.SetDurationAsAfterDateTime()
 		}
 		startDate := configuration.QueryDefinition.AfterDateTime
@@ -278,8 +279,8 @@ func (t *Tail) buildDateTimeRangeFilter() elastic.RangeFilter {
 
 	if t.queryDefinition.Duration != "" {
 		Trace.Printf("Duration query - entries for the past %s", t.queryDefinition.Duration)
-		if t.lastTimeStamp == "" {
-			fmt.Println(paintInfoline("Querying logs after " + t.queryDefinition.AfterDateTime))
+		if t.lastTimeStamp == "" && t.queryDefinition.DurationSpecified {
+			fmt.Println(paintInfoline("Querying logs after " + t.queryDefinition.AfterDateTime + ". Duration filter: " + t.queryDefinition.Duration))
 		}
 		t.queryDefinition.SetDurationAsAfterDateTime()
 	}
