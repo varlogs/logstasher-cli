@@ -28,10 +28,167 @@
 
     <div class="container">
       <section id="main_content">
-        <h1>
-<a id="logstasher-cli" class="anchor" href="#logstasher-cli" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>logstasher-cli</h1>
+        <h2>
+<a id="logstasher-cli" class="anchor" href="#logstasher-cli" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>logstasher-cli</h2>
 
 <p>logstasher-cli is a command line utility to query and tail logstash logs</p>
+
+<h3>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation</h3>
+
+<p>logstasher-cli is written in Go language, and if you have <a href="https://golang.org/doc/install#install">Go installed</a>, you can just type in:</p>
+
+<p><code>go get github.com/varlogs/logstasher-cli</code></p>
+
+<p>This will automatically download, compile and install the app.
+After that you should have <code>logstasher-cli</code> executable in your <code>$GOPATH/bin</code>.   </p>
+
+<h3>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Usage</h3>
+
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#setting-up-profile">Setting up profile</a></li>
+<li><a href="#list-all-sources">List all sources</a></li>
+<li><a href="#filtering-by-source">Filtering by source</a></li>
+<li>
+<a href="#time-filters">Time Filters</a>
+
+<ul>
+<li><a href="#duration-filter">Duration Filter</a></li>
+<li><a href="#after-filter">After Filter</a></li>
+<li><a href="#before-filter">Before Filter</a></li>
+</ul>
+</li>
+<li><a href="#filter-by-request-id">Filter by Request Id</a></li>
+<li><a href="#keyword-search">Keyword Search</a></li>
+<li><a href="#keyword-watch">Keyword Watch</a></li>
+<li><a href="#tailing">Tailing</a></li>
+</ul>
+
+<h3>
+<a id="overview" class="anchor" href="#overview" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Overview</h3>
+
+<p>Make sure you have <code>logstasher-cli</code> installed by typing the following</p>
+
+<div class="highlight highlight-source-powershell"><pre>$ logstasher<span class="pl-k">-</span>cli  <span class="pl-k">-</span>h
+
+NAME:
+   logstasher<span class="pl-k">-</span>cli <span class="pl-k">-</span> The power of command line to search<span class="pl-k">/</span>tail logstash logs
+
+USAGE:
+   logstasher<span class="pl-k">-</span>cli <span class="pl-e">[global</span> <span class="pl-e">options]</span> <span class="pl-s">'&lt;search keyword(s)&gt;'</span>
+   Options marked with <span class="pl-k">(</span><span class="pl-k">*</span><span class="pl-k">)</span> are saved between invocations of the command. Each time you specify an option marked with <span class="pl-k">(</span><span class="pl-k">*</span><span class="pl-k">)</span> previously stored settings are erased.
+....</pre></div>
+
+<p>You can refer to the global options available in the help panel for easy and quick reference. A detailed write up of the various commands/options can be found below.</p>
+
+<h3>
+<a id="setting-up-profile" class="anchor" href="#setting-up-profile" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Setting up profile</h3>
+
+<p>You can setup different profiles that logstasher-cli can use to talk to multiple elasticsearch hosts. A typical setup would have separate profiles for each environment like staging, uat or production.</p>
+
+<p>You can setup a profile by specifying the profile name the elasticsearch url:</p>
+
+<div class="highlight highlight-source-shell"><pre>$ logstasher-cli -p staging -url <span class="pl-s"><span class="pl-pds">'</span>https://staging.logstasher.com:9200<span class="pl-pds">'</span></span></pre></div>
+
+<p>Ignore the port if the elasticsearch URL is behind some proxy and listening on port 80. You can setup multiple profiles using the above command specifying a profile name and host url for each environment.</p>
+
+<p>Any other commands in the future will require you to specify only the profile as <code>-p or —profile</code> option. You can setup one of the configures profiles as the default profile to make the profile implicit.</p>
+
+<div class="highlight highlight-source-shell"><pre>$ logstasher-cli -p staging --default-profile
+staging setup as default profile unless -p specified</pre></div>
+
+<p>You can overwrite the url option at anytime by just calling the <code>-p</code> and <code>-url</code> options again. All of your profile settings are stored at <code>~/.logstasher</code> folder at your root level and you can look for yourself to see the configuration params stored by <code>logstasher-cli</code></p>
+
+<h3>
+<a id="list-all-sources" class="anchor" href="#list-all-sources" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>List all sources</h3>
+
+<p>This is more of a command than an option to list all the sources present in ElasticSearch. The output of this command is basically a unique aggregate on <code>source</code> field from all of the available indices</p>
+
+<div class="highlight highlight-source-shell"><pre>$ logstasher-cli --list-sources
+Profile: staging <span class="pl-k">|</span> Host: https://staging.logstasher.com:9200
+AuthService
+Reporter
+....</pre></div>
+
+<p>Note that we have skipped specifying <code>-p and -url</code> options as the default profile is picked up automatically based on previous configuration steps.</p>
+
+<h3>
+<a id="filtering-by-source" class="anchor" href="#filtering-by-source" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Filtering by source</h3>
+
+<p>Now that you know the list of available sources, you can restrict logs to one or more sources</p>
+
+<div class="highlight highlight-source-shell"><pre>$ logstasher-cli -s AuthService
+Profile: staging <span class="pl-k">|</span> Host: https://staging.logstasher.com:9200
+Querying logs after 2016-11-16T00:17:13.02191559
+....
+....
+Fetch more logs or quit (m/q)<span class="pl-k">?</span></pre></div>
+
+<p>We will talk about a couple of items from the last command's output. Notice that the logs are retrieved after a specific timestamp. This is based on the <a href="#duration-filter">duration filter</a> discussed later and is defaulted to <code>5m</code>. And the number of entries that are fetched are based on the <code>-n</code> filter and is defaulted to 100. In this case, after every 100 entries, the user will be prompted to press <code>m/q</code> to continue or to quit. <code>logstasher-cli</code> can fetch logs from the source infinitely as long as there are more entries available.</p>
+
+<p>And by the way, multiple sources can be specified in this filter as comma-separated values like <code>-s 'AuthService,ReportingService'</code></p>
+
+<h3>
+<a id="time-filters" class="anchor" href="#time-filters" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Time Filters</h3>
+
+<h4>
+<a id="duration-filter" class="anchor" href="#duration-filter" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Duration Filter</h4>
+
+<p>The duration filter is an easy way to trail back to the past and search for logs from a starting point in the timeline. The possible values are <code>2m, 5m, 10m, 30m, 1h, 3h, 6h, 12h, 1d, 2d, 7d, 15d, 30d</code> and is defaulted to <code>5m</code>. </p>
+
+<div class="highlight highlight-source-shell"><pre>$ logstasher-cli -s AuthService -d 1d</pre></div>
+
+<p>will fetch log entries of AuthService starting 24 hours in the past relative to the time at which the command is executed</p>
+
+<h4>
+<a id="after-filter" class="anchor" href="#after-filter" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>After Filter</h4>
+
+<p>In addition to duration filter, you can pin point a specific timestamp in the logging timeline and fetch all logs including and after that timestamp</p>
+
+<div class="highlight highlight-source-shell"><pre>$ logstasher-cli -a <span class="pl-s"><span class="pl-pds">'</span>2016-11-16T00:40:43.852<span class="pl-pds">'</span></span></pre></div>
+
+<p>will fetch logs from all sources (since source filter is missing) starting from the specific timestamp given as value to  <code>-a</code></p>
+
+<h4>
+<a id="before-filter" class="anchor" href="#before-filter" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Before Filter</h4>
+
+<p>Similar to after filter, you can specify a before filter to fetch logs before a specific timestamp. </p>
+
+<h3>
+<a id="filter-by-request-id" class="anchor" href="#filter-by-request-id" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Filter by Request Id</h3>
+
+<p>You can specify <code>id</code> filter to fetch all logs traced by a specific <code>x-request-id</code></p>
+
+<div class="highlight highlight-source-shell"><pre>$ logstasher-cli -id 4cbff9a3</pre></div>
+
+<h3>
+<a id="keyword-search" class="anchor" href="#keyword-search" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Keyword Search</h3>
+
+<p>This might be the most used filter for <code>logstasher-cli</code>. In addition to all the above filters, you can specify one or more keywords to search in the text analysed <code>message</code> field</p>
+
+<div class="highlight highlight-source-shell"><pre>$ logstasher-cli -d 12h <span class="pl-s"><span class="pl-pds">"</span>Exception raised<span class="pl-pds">"</span></span></pre></div>
+
+<p>This command will search for all log entries that have the keywords <code>exception</code> and <code>raised</code> in the past 12 hours. The CLI will also highlight the search keywords in the log for easy reference</p>
+
+<h3>
+<a id="keyword-watch" class="anchor" href="#keyword-watch" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Keyword Watch</h3>
+
+<p>Similar to the previous command except that it does not apply any filter on the keywords, but just highlights them in the log results for easy eyeing.</p>
+
+<div class="highlight highlight-source-shell"><pre>$ logstasher-cli -w <span class="pl-s"><span class="pl-pds">'</span>Transaction committed<span class="pl-pds">'</span></span></pre></div>
+
+<p>will highlight the words in the log trail for easy reference</p>
+
+<h3>
+<a id="tailing" class="anchor" href="#tailing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Tailing</h3>
+
+<p><code>logstasher-cli</code> offers near realtime tailing of the logs based on the applied filters. Tail mode can be enabled by passing <code>-t</code> or <code>—tail</code> option. This mode will override all of the time filters including <code>-d, -a, -b</code> as by default, this will fetch the most recent 100 log entries from the host. When there are new entries appended to the host, they will be pulled and rendered on the terminal as and when they are available. This option will make you feel right at home with elasticsearch similar to using <code>tail -f</code> on a local file.</p>
+
+<div class="highlight highlight-source-shell"><pre>$ logstasher-cli -tail -s AuthService -w <span class="pl-s"><span class="pl-pds">"</span>403<span class="pl-pds">"</span></span></pre></div>
+
+<p>We believe you would mostly want to filter by specific sources and watch for keywords and continuously tail to assist you with debugging.</p>
       </section>
     </div>
 
