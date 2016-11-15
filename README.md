@@ -9,7 +9,7 @@ logstasher-cli is a command line utility to query and tail logstash logs
 ### Usage
 
 - [Overview](#overview)
-- [Setting up profile](#profile)
+- [Setting up profile](#Setting up profile)
 - [Tailing](#tailing)
 
 
