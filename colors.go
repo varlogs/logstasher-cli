@@ -19,7 +19,7 @@ func paintInfoline(content string) string {
 }
 
 func paintSystemParams(config *Configuration) string {
-	return color.MagentaString("Profile: " + config.Profile + " Host: " + config.SearchTarget.Url)
+	return color.MagentaString("Profile: " + config.Profile + " | Host: " + config.SearchTarget.Url)
 }
 
 func highlightContent(content string) string {

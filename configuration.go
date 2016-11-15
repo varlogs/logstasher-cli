@@ -8,6 +8,7 @@ import (
 	"github.com/codegangsta/cli"
 	"time"
 	"fmt"
+	"io"
 )
 
 type SearchTarget struct {
@@ -25,11 +26,12 @@ type QueryDefinition struct {
 	Duration       string
 	Source         string
 	RequestId      string
-	Watch	       string
+	Watch          string
 }
 
 type Commands struct {
-	ListSources bool
+	ListSources    bool
+	DefaultProfile bool
 }
 
 type Configuration struct {
@@ -160,6 +162,24 @@ func LoadProfile(profile string) (conf *Configuration, err error) {
 	return config, nil
 }
 
+func setupDefaultProfile(profile string) {
+	confDirPath := userHomeDir() + string(os.PathSeparator) + confDir;
+	confFile := confDirPath + string(os.PathSeparator) + profile + ".json";
+	targetFile := confDirPath + string(os.PathSeparator) + "default.json";
+
+	if _, err := os.Stat(confFile); err == nil {
+		source, _ := os.Open(confFile)
+		defer source.Close()
+		target, _ := os.Create(targetFile)
+		defer target.Close()
+		_, err = io.Copy(target, source)
+		target.Sync()
+		fmt.Printf("%s setup as default profile unless -p specified\n", profile)
+	} else {
+		Error.Printf("Profile %s does not exist!\n", profile)
+	}
+}
+
 func (config *Configuration) Flags() []cli.Flag {
 	cli.VersionFlag.Usage = "Print the version"
 	cli.HelpFlag.Usage = "Show help"
@@ -169,6 +189,11 @@ func (config *Configuration) Flags() []cli.Flag {
 			Value:       "default",
 			Usage:       "(*) You can setup a profile for each environment (staging, production) or for each platform with a unique ElasticSearch URL",
 			Destination: &config.Profile,
+		},
+		cli.BoolFlag{
+			Name:        "default-profile",
+			Usage:       "Set profile given in -p option as default (-p staging --default-profile)",
+			Destination: &config.Commands.DefaultProfile,
 		},
 		cli.StringFlag{
 			Name:        "url",
@@ -198,7 +223,7 @@ func (config *Configuration) Flags() []cli.Flag {
 		},
 		cli.BoolFlag{
 			Name:        "t,tail",
-			Usage:       "Follow logstash for future entries and continously tail",
+			Usage:       "Tail mode will wait for additional logs to be available from host. Will override all date filters and fetch most recent 'n' entries",
 			Destination: &config.TailMode,
 		},
 		cli.IntFlag{
@@ -209,13 +234,13 @@ func (config *Configuration) Flags() []cli.Flag {
 		},
 		cli.BoolFlag{
 			Name:        "list-sources",
-			Usage:       "List all the sources",
+			Usage:       "List all the application sources",
 			Destination: &config.Commands.ListSources,
 		},
 		cli.StringFlag{
 			Name:        "s,src",
 			Value:       "",
-			Usage:       "Filter by one or more sources (-s 'AuthService', -s 'MicroService1, MicroService2')",
+			Usage:       "Show only logs of given source(s) (-s 'AuthService', -s 'AuthService,ReportingService')",
 			Destination: &config.QueryDefinition.Source,
 		},
 		cli.StringFlag{
@@ -316,7 +341,7 @@ func (q *QueryDefinition) BeforeDateTimeInUTC() string {
 	return parseTimeToUTC(q.BeforeDateTime)
 }
 
-func (q *QueryDefinition) SetDurationAsAfterDateTime()  {
+func (q *QueryDefinition) SetDurationAsAfterDateTime() {
 	mins := durationInMinutes[q.Duration]
 	now := time.Now()
 	then := now.Add(time.Duration(-mins) * time.Minute)

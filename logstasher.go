@@ -77,7 +77,6 @@ func NewTail(configuration *Configuration) *Tail {
 
 	tail.queryDefinition = &configuration.QueryDefinition
 
-
 	tail.selectIndices(configuration)
 
 	//If we're date filtering on start date, then the sort needs to be ascending
@@ -134,6 +133,7 @@ func main() {
 			loadedConfig, err := LoadProfile(config.Profile)
 			if err != nil {
 				Info.Printf("Failed to find or open previous default configuration: %s\n", err)
+				Error.Fatalln("It seems like you do not have default profile setup. Please setup a profile by providing -p, -url, -default-profile options or type --help for all options")
 			} else {
 				Info.Printf("Loaded previous config and connecting to host %s.\n", loadedConfig.SearchTarget.Url)
 				loadedConfig.CopyConfigRelevantSettingsTo(config)
@@ -205,19 +205,27 @@ func main() {
 			}
 		}
 
-		tail := NewTail(config)
-		//If we don't exit here we can save the defaults
-		configToSave.SaveDefault()
 
-		if (config.Commands.ListSources) {
+		if config.Commands.ListSources {
+			tail := NewTail(config)
 			result, err := tail.ListAllSources()
 			if err != nil {
 				Error.Fatalln("Error in executing search query.", err)
 			}
 			tail.processSources(result)
+		} else if config.Commands.DefaultProfile {
+			if config.Profile == "" {
+				Error.Fatalln("Please specify the profile to be set as default using -p or --profile option")
+			} else {
+				setupDefaultProfile(config.Profile)
+			}
 		} else {
+			tail := NewTail(config)
 			tail.Start(config.InitialEntries)
 		}
+
+		//If we don't exit here we can save the defaults
+		configToSave.SaveDefault()
 
 	}
 
