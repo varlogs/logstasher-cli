@@ -119,10 +119,12 @@ func (c *Configuration) CopyNonConfigRelevantSettingsTo(dest *Configuration) {
 }
 
 func (c *Configuration) SaveDefault() {
+	creatingFirstProfile := false
 	confDirPath := userHomeDir() + string(os.PathSeparator) + confDir;
 	if _, err := os.Stat(confDirPath); os.IsNotExist(err) {
 		//conf directory doesn't exist, let's create it
 		err := os.Mkdir(confDirPath, 0700)
+		creatingFirstProfile = true
 		if (err != nil) {
 			Error.Printf("Failed to create configuration directory %s, %s\n", confDirPath, err)
 			return
@@ -138,6 +140,10 @@ func (c *Configuration) SaveDefault() {
 	if (err != nil) {
 		Error.Printf("Failed to save configuration to file %s, %s\n", confFile, err)
 		return
+	}
+	if creatingFirstProfile {
+		// setup first profile as default profile
+		setupDefaultProfile(c.Profile)
 	}
 }
 
@@ -175,7 +181,7 @@ func setupDefaultProfile(profile string) {
 		defer target.Close()
 		_, err = io.Copy(target, source)
 		target.Sync()
-		fmt.Printf("%s setup as default profile unless -p specified\n", profile)
+		fmt.Printf("%s setup as default profile. Use -p to override default profile.\n", profile)
 	} else {
 		Error.Printf("Profile %s does not exist!\n", profile)
 	}
@@ -192,8 +198,8 @@ func (config *Configuration) Flags() []cli.Flag {
 			Destination: &config.Profile,
 		},
 		cli.BoolFlag{
-			Name:        "default-profile",
-			Usage:       "Set profile given in -p option as default (-p staging --default-profile)",
+			Name:        "set-as-default",
+			Usage:       "Set profile given in -p option as default (-p staging --set-as-default)",
 			Destination: &config.Commands.DefaultProfile,
 		},
 		cli.StringFlag{

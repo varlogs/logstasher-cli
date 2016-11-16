@@ -61,7 +61,7 @@ Ignore the port if the elasticsearch URL is behind some proxy and listening on p
 Any other commands in the future will require you to specify only the profile as `-p or —profile` option. You can setup one of the configures profiles as the default profile to make the profile implicit.
 
 ```bash
-$ logstasher-cli -p staging --default-profile
+$ logstasher-cli -p staging --set-as-default
 staging setup as default profile unless -p specified
 ```
 
