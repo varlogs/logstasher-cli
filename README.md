@@ -67,6 +67,8 @@ staging setup as default profile unless -p specified
 
 You can overwrite the url option at anytime by just calling the `-p` and `-url` options again. All of your profile settings are stored at `~/.logstasher` folder at your root level and you can look for yourself to see the configuration params stored by `logstasher-cli`
 
+**After defining the default profile, all future usages of the tool can skip specifying the profile `-p` and the host  `-url` options and only the search filters (if any) must be specified**
+
 ### List all sources
 
 This is more of a command than an option to list all the sources present in ElasticSearch. The output of this command is basically a unique aggregate on `source` field from all of the available indices
@@ -112,7 +114,7 @@ will fetch log entries of AuthService starting 24 hours in the past relative to 
 
 #### After Filter
 
-In addition to duration filter, you can pin point a specific timestamp in the logging timeline and fetch all logs including and after that timestamp
+In addition to duration filter, you can pin point a specific timestamp in the logging timeline and fetch all logs including and after that timestamp.
 
 ``` shell
 $ logstasher-cli -a '2016-11-16T00:40:43.852'
@@ -123,6 +125,8 @@ will fetch logs from all sources (since source filter is missing) starting from 
 #### Before Filter
 
 Similar to after filter, you can specify a before filter to fetch logs before a specific timestamp. 
+
+**Both `after` and `before` filters accept timestamp in local timezone and will be translated to the host timezone automatically. So the timestamp displayed in the output, which is by default in the local timezone can be fed back as a filter**
 
 ### Filter by Request Id
 
