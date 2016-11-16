@@ -77,6 +77,10 @@ func NewTail(configuration *Configuration) *Tail {
 
 	tail.queryDefinition = &configuration.QueryDefinition
 
+	if (tail.tailMode) {
+		tail.queryDefinition.Duration = "2m"
+	}
+
 	if (tail.queryDefinition.RequestId != "") {
 		//if RequestId is specified, search today's index completely and get max 1000 entries
 		tail.queryDefinition.Duration = "24h"

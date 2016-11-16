@@ -29,7 +29,7 @@ func (tail *Tail) selectIndices(configuration *Configuration) {
 		Error.Fatalln("Could not fetch available indices.", err)
 	}
 
-	if configuration.QueryDefinition.IsDateTimeFiltered() && !configuration.TailMode {
+	if configuration.QueryDefinition.IsDateTimeFiltered()  {
 		if configuration.QueryDefinition.Duration != "" && configuration.QueryDefinition.AfterDateTime == "" && configuration.QueryDefinition.BeforeDateTime == "" {
 			configuration.QueryDefinition.DurationSpecified = true
 			configuration.QueryDefinition.SetDurationAsAfterDateTime()
@@ -263,7 +263,7 @@ func (t *Tail) buildSearchQuery() elastic.Query {
 		query = elastic.NewFilteredQuery(query).Filter(elastic.NewTermFilter("x_request_id", t.queryDefinition.RequestId[0:8]))
 	}
 
-	if t.queryDefinition.IsDateTimeFiltered() && !t.tailMode {
+	if t.queryDefinition.IsDateTimeFiltered() {
 		// we have date filtering turned on, apply filter
 		filter := t.buildDateTimeRangeFilter()
 		query = elastic.NewFilteredQuery(query).Filter(filter)
