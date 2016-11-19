@@ -158,7 +158,7 @@ will highlight the words in the log trail for easy reference
 
 ### Tailing
 
-`logstasher-cli` offers near realtime tailing of the logs based on the applied filters. Tail mode can be enabled by passing `-t` or `—tail` option. This mode will override all of the time filters including `-d, -a, -b` as by default, this will fetch the most recent 100 log entries from the host. When there are new entries appended to the host, they will be pulled and rendered on the terminal as and when they are available. This option will make you feel right at home with elasticsearch similar to using `tail -f` on a local file.
+`logstasher-cli` offers near realtime tailing of the logs based on the applied filters. Tail mode can be enabled by passing `-t` or `—tail` option. This mode will override all the time filters including `-a, -b` and set the default duration as `2m` and will fetch the most recent log entries from the host. When there are new entries appended to the host, they will be pulled and rendered on the terminal as and when they are available. This option will make you feel right at home with elasticsearch similar to using `tail -f` on a local file.
 
 ``` shell
 $ logstasher-cli -tail -s AuthService -w "403"
