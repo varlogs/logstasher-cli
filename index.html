@@ -22,7 +22,8 @@
 
 
         <ul>
-        
+          <li><a href="https://github.com/varlogs/logstasher-cli/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/varlogs/logstasher-cli/tarball/master">Download <strong>TAR Ball</strong></a></li>
           <li><a href="https://github.com/varlogs/logstasher-cli">View On <strong>GitHub</strong></a></li>
         </ul>
       </header>
@@ -137,11 +138,13 @@ Fetch more logs or quit (m/q)<span class="pl-k">?</span></pre></div>
 <h4>
 <a id="duration-filter" class="anchor" href="#duration-filter" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Duration Filter</h4>
 
-<p>The duration filter is an easy way to trail back to the past and search for logs from a starting point in the timeline. The possible values are <code>2m, 5m, 10m, 30m, 1h, 3h, 6h, 12h, 1d, 2d, 7d, 15d, 30d</code> and is defaulted to <code>5m</code>. </p>
+<p>The duration filter is an easy way to trail back to the past and search for logs from a starting point in the timeline. The possible values must be of the form <code>%m or %d or %h where % is a number</code> to give duration in mins, hours or days. If not specified, defaulted to <code>5m</code>. </p>
 
-<div class="highlight highlight-source-shell"><pre>$ logstasher-cli -s AuthService -d 1d</pre></div>
+<div class="highlight highlight-source-shell"><pre>$ logstasher-cli -s AuthService -d 8m
+$ logstasher-cli -s AuthService -d 2h
+$ logstasher-cli -s AuthService -d 3d</pre></div>
 
-<p>will fetch log entries of AuthService starting 24 hours in the past relative to the time at which the command is executed</p>
+<p>will fetch log entries of AuthService starting with duration of  8 minutes or 2 hours or 2 days in the past relative to the time at which the command is executed</p>
 
 <h4>
 <a id="after-filter" class="anchor" href="#after-filter" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>After Filter</h4>
