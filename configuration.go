@@ -9,6 +9,8 @@ import (
 	"time"
 	"fmt"
 	"io"
+	"regexp"
+	"strconv"
 )
 
 type SearchTarget struct {
@@ -56,20 +58,6 @@ var confDir = ".logstasher"
 //When changing this array, make sure to also make appropriate changes in CopyConfigRelevantSettingsTo
 var configRelevantFlags = []string{"url", "f", "i", "u", "ssh"}
 
-var durationInMinutes = map[string]int{
-	"2m": 2,
-	"5m": 5,
-	"10m": 10,
-	"30m": 30,
-	"1h": 60,
-	"3h": 180,
-	"6h": 360,
-	"12h": 720,
-	"24h": 1440,
-	"3d": 4320,
-	"7d": 10080,
-	"30d": 43200,
-}
 
 func userHomeDir() string {
 	if runtime.GOOS == "windows" {
@@ -271,7 +259,7 @@ func (config *Configuration) Flags() []cli.Flag {
 		cli.StringFlag{
 			Name:        "d,duration",
 			Value:       "5m",
-			Usage:       "Display logs for past duration (2m, 5m, 10m, 30m, 1h, 3h, 6h, 12h, 1d, 2d, 7d, 15d, 30d)",
+			Usage:       "Display logs for past duration. Must be of the form '%m or %d or %h where % is a number' to give duration in mins, hours or days",
 			Destination: &config.QueryDefinition.Duration,
 		},
 		cli.StringFlag{
@@ -349,10 +337,36 @@ func (q *QueryDefinition) BeforeDateTimeInUTC() string {
 }
 
 func (q *QueryDefinition) SetDurationAsAfterDateTime() {
-	mins := durationInMinutes[q.Duration]
+	mins := durationToMins(q.Duration)
+	Info.Printf("Using duration in mins: %d\n", mins)
 	now := time.Now()
 	then := now.Add(time.Duration(-mins) * time.Minute)
 	q.AfterDateTime = then.Format("2006-01-02T15:04:05.99999999")
+}
+
+func durationToMins(duration string) int64 {
+	minPattern := regexp.MustCompile(`(\d+)m`)
+	hourPattern := regexp.MustCompile(`(\d+)h`)
+	dayPattern := regexp.MustCompile(`(\d+)d`)
+
+	if res := minPattern.FindStringSubmatch(duration); res != nil {
+		return stringToInt(res[1])
+	} else if res := hourPattern.FindStringSubmatch(duration); res != nil {
+		return stringToInt(res[1]) * 60
+	} else if res := dayPattern.FindStringSubmatch(duration); res != nil {
+		return stringToInt(res[1]) * 60 * 24
+	} else {
+		panic("Unknown duration format. Supported formats: %m,%h,%d where % can 1-9")
+	}
+}
+
+func stringToInt(str string) int64 {
+	num, err := strconv.ParseInt(str, 0, 32)
+	if err == nil {
+		return num
+	} else {
+		return 0
+	}
 }
 
 func parseTimeToUTC(givenTime string) string {

@@ -104,13 +104,15 @@ And by the way, multiple sources can be specified in this filter as comma-separa
 
 #### Duration Filter
 
-The duration filter is an easy way to trail back to the past and search for logs from a starting point in the timeline. The possible values are `2m, 5m, 10m, 30m, 1h, 3h, 6h, 12h, 1d, 2d, 7d, 15d, 30d` and is defaulted to `5m`. 
+The duration filter is an easy way to trail back to the past and search for logs from a starting point in the timeline. The possible values must be of the form `%m or %d or %h where % is a number` to give duration in mins, hours or days. If not specified, defaulted to `5m`. 
 
 ```shell
-$ logstasher-cli -s AuthService -d 1d
+$ logstasher-cli -s AuthService -d 8m
+$ logstasher-cli -s AuthService -d 2h
+$ logstasher-cli -s AuthService -d 3d
 ```
 
-will fetch log entries of AuthService starting 24 hours in the past relative to the time at which the command is executed
+will fetch log entries of AuthService starting with duration of  8 minutes or 2 hours or 2 days in the past relative to the time at which the command is executed
 
 #### After Filter
 
